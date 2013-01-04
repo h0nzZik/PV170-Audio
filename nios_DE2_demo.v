@@ -10,7 +10,11 @@ module nios_DE2_demo (
 		KEY,
 		SW,
 		LEDG,
-		LEDR
+		LEDR,
+		/* some audio pins */
+		AUD_DACLRCK,
+		AUD_DACDAT,
+		AUD_BCLK
 		);
 	
 	input CLK;
@@ -28,8 +32,17 @@ module nios_DE2_demo (
 	//assign LEDR = KEY[1] ?  SW : 18'h3FFFF;
 	assign rst = KEY[0];
 	
+
+
+
+/*************************************************************/
+
+	input AUD_BCLK;
+	input AUD_DACLRCK;
+	output AUD_DACDAT;
+
 	
-	
+/**************************************************************/	
 	clk_div divider1
 (
 	.CLK(CLK) ,	// input  CLK_sig
