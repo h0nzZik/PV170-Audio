@@ -6,11 +6,13 @@ module gen_square (
 );
 
 input clock;
-input clock_freq;
-input out_freq;
-reg div;
-reg cnt;
+input [31:0]clock_freq;
+input [31:0]out_freq;
 output [15:0]out;
+
+reg [31:0]div;
+reg [31:0]cnt;
+
 
 always@(clock_freq or out_freq)
 begin
@@ -23,7 +25,10 @@ begin
 	if (div == cnt)
 	begin
 		cnt <= 0;
-		out <= ~out;
+		if (out == 0)
+			out <= 20000;
+		else
+			out <= 0;
 	end
 	else
 	begin

@@ -11,6 +11,7 @@
 	/* sound source connection */
 	data_left,
 	data_right,
+	test_counter
  );
  
  input bclk;
@@ -20,34 +21,42 @@
  input [15:0] data_left;
  input [15:0] data_right;
  
- reg bit_counter;
- 
- /* clear bit counter */
- always@(posedge daclrc)
- begin
+ reg [31:0]bit_counter;
 
-	bit_counter <= 0;
- 
- end
- 
+  
+ reg [31:0]test_counter;
+ output test_counter;
  always@(negedge bclk)
  begin
-	/* transfer only 2*16 bits */
-	if (bit_counter < 2*16)
+	test_counter <= test_counter +1;
+	/* reset it? */
+	if (daclrc)
+		bit_counter <= 0;	
+
+	/* falling edge */
+	else
 	begin
-		/* left channel */
-		if (bit_counter < 16)
+		/* send bit? */
+		if (bit_counter < 2*16)
 		begin
-			dacdat <= (data_left >> bit_counter) & 1;
-		end
-		/* right channel */
-		else
-		begin
-			dacdat <= (data_right >> (bit_counter - 16)) & 1;
-		end
-		/* increment counter */
-		bit_counter <= bit_counter + 1;	
-	end 
+			/* left channel */
+			if (bit_counter < 16)
+			begin
+				dacdat <= (data_left >> (15 - bit_counter)) & 1;
+			end
+			/* right channel */
+			else
+			begin
+				dacdat <= (data_right >> (31 - bit_counter)) & 1;
+			end
+			/* increment counter */
+			bit_counter <= bit_counter + 1;	
+		end // send bit?
+	
+	end
+ 
+	/* transfer only 2*16 bits */
+
  end
  
  
