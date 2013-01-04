@@ -40,9 +40,24 @@ module nios_DE2_demo (
 	input AUD_BCLK;
 	input AUD_DACLRCK;
 	output AUD_DACDAT;
-
 	
-/**************************************************************/	
+	wire sqr_data;
+	
+	gen_square sqr
+	(
+		.clock(CLK),
+		.clock_freq(40_000_000),
+		.out_freq(5),
+		.out(sqr_data),
+	);
+
+	always@(sqr_data)
+	begin
+	
+		LEDS[5] <= sqr_data;
+	end
+	
+/**************************************************************	
 	clk_div divider1
 (
 	.CLK(CLK) ,	// input  CLK_sig
@@ -63,5 +78,5 @@ module nios_DE2_demo (
 		
 		end
 	end
-	
+********************************************************************/	
 endmodule
