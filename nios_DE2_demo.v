@@ -62,16 +62,40 @@ module nios_DE2_demo (
 		.daclrc(AUD_DACLRCK),
 		.bclk(AUD_BCLK),
 		.dacdat(AUD_DACDAT),
-		/* */
+		// data
 		.data_left(sqr_data),
 		.data_right(sqr_data),
 
-		/* system clock */
+		// system clock
 		.sys_clk(CLK),
 		.sys_clk_freq(50_000_000)
 	);
 
 	
+	/*
+	audio_codec audio_test
+	(
+		.daclrc(LEDS[0]),
+		.bclk(LEDS[1]),
+		.dacdat(LEDS[2]),
+
+		.data_left(sqr_data),
+		.data_right(sqr_data),
+
+		.sys_clk(CLK),
+		.sys_clk_freq(50_000_000)
+	);
+
+	*/
+	
+	gen_clock some_test
+ (
+	.clock_in(CLK),
+	.in_freq(50_000_000),
+	.clock_out(LEDS[5]),
+	.out_freq(4)
+ 
+ );
 /**************************************************************	
 	clk_div divider1
 (

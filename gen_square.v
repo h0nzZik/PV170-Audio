@@ -26,7 +26,7 @@ begin
 	begin
 		cnt <= 0;
 		if (out == 0)
-			out <= 128_000;
+			out <= 8_000_000;
 		else
 			out <= 0;
 	end
