@@ -8,7 +8,7 @@ module gen_square (
 input clock;
 input [31:0]clock_freq;
 input [31:0]out_freq;
-output [15:0]out;
+output [23:0]out;
 
 reg [31:0]div;
 reg [31:0]cnt;
@@ -26,7 +26,7 @@ begin
 	begin
 		cnt <= 0;
 		if (out == 0)
-			out <= 20000;
+			out <= 128_000;
 		else
 			out <= 0;
 	end

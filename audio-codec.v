@@ -11,54 +11,71 @@
 	/* sound source connection */
 	data_left,
 	data_right,
-	test_counter
+	
+	/* system clock */
+	sys_clk,
+	sys_clk_freq
  );
  
- input bclk;
- input daclrc;
+ output bclk; reg bclk;
+ output daclrc; reg daclrc;
  output dacdat; reg dacdat;
  
- input [15:0] data_left;
- input [15:0] data_right;
+ input [23:0] data_left;
+ input [23:0] data_right;
+ 
+ input sys_clk;
+ input [31:0] sys_clk_freq;
  
  reg [31:0]bit_counter;
 
   
- reg [31:0]test_counter;
- output test_counter;
- always@(negedge bclk)
- begin
-	test_counter <= test_counter +1;
-	/* reset it? */
-	if (daclrc)
-		bit_counter <= 0;	
+ 
+ /* 'I2C Mode' block */
+ 
+ /* generate BCLK and DACLRC signal */
+ 
+ reg sc;		// synchronization
+  reg [7:0] counter;
+ gen_clock sync
+ (
+	.clock_in(sys_clk),
+	.in_freq(sys_clk_freq),
+	.clock_out(sc),
+	.out_freq(48_000 * 50 * 2)
+ 
+ );
+ 
 
-	/* falling edge */
-	else
-	begin
-		/* send bit? */
-		if (bit_counter < 2*16)
-		begin
-			/* left channel */
-			if (bit_counter < 16)
-			begin
-				dacdat <= (data_left >> (15 - bit_counter)) & 1;
-			end
-			/* right channel */
-			else
-			begin
-				dacdat <= (data_right >> (31 - bit_counter)) & 1;
-			end
-			/* increment counter */
-			bit_counter <= bit_counter + 1;	
-		end // send bit?
+ always@(negedge sc)
+ begin
 	
+
+	/* bclk will go down */
+	if (bclk == 1)
+	begin
+	
+		/* left channel */
+		if (counter == 0)
+			daclrc <= 0;
+		if (counter >= 1 && counter <= 24)
+			dacdat <= data_left[24-counter];
+
+		/* right channel */
+		if (counter == 25)
+			daclrc <= 1;
+		if (counter >= 26 && counter <= 49)
+			dacdat <= data_right[49 - counter];
+	
+		/* increment counter */
+		if (counter == 49)
+			counter <= 0;
+		else
+			counter <= counter + 8'b1;
 	end
  
-	/* transfer only 2*16 bits */
-
- end
- 
- 
+	bclk <= ~bclk;
+	
+end
  
  endmodule

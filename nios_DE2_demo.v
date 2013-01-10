@@ -23,14 +23,20 @@ module nios_DE2_demo (
 	output	[8:0]	LEDG;					
     output	[17:0]	LEDR;
     
+
+	/* some audio pins */
+	output AUD_BCLK;
+	output AUD_DACLRCK;
+	output AUD_DACDAT;
 	
-    wire clk_div;
-    wire rst;
+//    wire clk_div;
+
 	reg [17:0] LEDS;
 	
 	assign LEDR = LEDS;
 	
 	//assign LEDR = KEY[1] ?  SW : 18'h3FFFF;
+    wire rst;
 	assign rst = KEY[0];
 	
 
@@ -38,57 +44,17 @@ module nios_DE2_demo (
 
 /*************************************************************/
 
-	input AUD_BCLK;
-	input AUD_DACLRCK;
-	output AUD_DACDAT;
+
 	
 	//wire sqr_data;
-	reg [15:0] sqr_data;
+	reg [23:0] sqr_data;
 	gen_square sqr
 	(
 		.clock(CLK),
-		.clock_freq(40_000_000),
+		.clock_freq(50_000_000),
 		.out_freq(500),
-		.out(sqr_data),
+		.out(sqr_data)
 	);
-/*
-	always@(sqr_data)
-	begin
-		LEDS <= sqr_data;
-		if (sqr_data > 32768)
-			LEDG[5] <= 1;
-		else
-			LEDG[5] <= 0;
-	end
-	*/
-
-
-	reg [31:0] test;
-	always@(test)
-	begin
-		LEDG[1] <= 1;
-		LEDG[2] <= ~LEDG[2];
-		LEDS <= test;
-	end
-	
-	
-	always@(posedge AUD_BCLK)
-	begin
-		LEDG[3] <= ~LEDG[3];
-		
-	end
-
-	always@(negedge AUD_BCLK)
-	begin
-		LEDG[4] <= ~LEDG[4];
-	end
-
-	always@(AUD_BCLK)
-	begin
-		LEDG[5] <= ~LEDG[5];
-		
-	end
-
 
 	
 	audio_codec audio_out
@@ -99,8 +65,10 @@ module nios_DE2_demo (
 		/* */
 		.data_left(sqr_data),
 		.data_right(sqr_data),
-		.test_counter(test),
-	
+
+		/* system clock */
+		.sys_clk(CLK),
+		.sys_clk_freq(50_000_000)
 	);
 
 	
