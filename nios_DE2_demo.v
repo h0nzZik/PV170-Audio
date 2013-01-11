@@ -96,7 +96,7 @@ module nios_DE2_demo (
 	
 	
 
-	gen_clock some_test
+gen_clock some_test
  (
 	.clock_in(CLK),
 	.in_freq(50_000_000),
@@ -105,7 +105,7 @@ module nios_DE2_demo (
  
  );
  
-	gen_clock gpio_test
+gen_clock gpio_test
 (
 	.clock_in(CLK),
 	.in_freq(50_000_000),
@@ -114,8 +114,63 @@ module nios_DE2_demo (
 );
  
  
- /* test I2C */
  
+  // data to send
+ reg [7:0] i2c_data;
+ 
+ always@(posedge KEY[3])
+ begin
+	i2c_data <= SW[7:0];
+ 
+ end
+ 
+ 
+ reg write;
+ reg done;
+ i2c_write writer
+ (
+	.sda(GPIO_0[1]),
+	.scl(GPIO_0[2]),
+
+	.addr(8'h35),
+	.register(8'h04),
+	.data(i2c_data),
+	
+	.sys_clk(CLK),
+	.sys_freq(50_000_000),
+	.i2c_freq(10_000),
+	.write(write),
+	.done(done)
+ );
+ 
+ reg [7:0] phase;
+ reg working;
+ always@(posedge CLK)
+ begin
+	// Send it all
+	if (phase == 0)
+	begin
+		if (working == 0 && done == 0)
+		begin
+			working <= 1;
+			write <= 1;
+		end
+		if (working == 1 && done == 1)
+		begin
+			write <= 0;
+			working <= 0;
+			phase <= 0;		// there is only one phase ;)
+		end
+	end
+	
+	if (phase == 1)
+	begin
+		// never happens
+	end
+ end
+ 
+ /* test I2C */
+ /*
  reg i2c_clk;
  
  gen_clock i2c_sys_clock
@@ -147,24 +202,17 @@ module nios_DE2_demo (
  );
  
  
- // data to send
- reg [7:0] i2c_data;
- 
- always@(posedge KEY[3])
- begin
-	i2c_data <= SW[7:0];
- 
- end
+
  
  
  
- /* test it */
+ 
  reg [7:0] state = 0;
  reg phase_done = 0;
  always@(posedge CLK)
  begin
  
-	/* send start bit */
+	// send start bit
 	if (state == 0)
 	begin
 		// transition to state=0
@@ -229,6 +277,9 @@ module nios_DE2_demo (
  
  
  end
+ 
+ */
+ 
  
 /**************************************************************	
 	clk_div divider1
