@@ -117,7 +117,7 @@ begin
 				sda <= 1'bz;
 			else
 			// send data
-			if (data[bit_no] == 1)
+			if (data[7 - bit_no] == 1)
 				sda <= 1'bz;
 			else
 				sda <= 1'b0;

@@ -105,7 +105,14 @@ module nios_DE2_demo (
  
  );
  
-
+	gen_clock gpio_test
+(
+	.clock_in(CLK),
+	.in_freq(50_000_000),
+	.clock_out(GPIO_0[0]),
+	.out_freq(1024)
+);
+ 
  
  /* test I2C */
  
@@ -132,12 +139,23 @@ module nios_DE2_demo (
 	.scl(GPIO_0[2]),
 	.start(i2c_start),
 	.stop(i2c_stop),
-	.data(16'h5A),
+	.data(i2c_data),
 	.write(i2c_write),
 	.cmd_done(i2c_done),
 	.cmd_status(i2c_status),
 	.sys_clk(i2c_clk)
  );
+ 
+ 
+ // data to send
+ reg [7:0] i2c_data;
+ 
+ always@(posedge KEY[3])
+ begin
+	i2c_data <= SW[7:0];
+ 
+ end
+ 
  
  
  /* test it */
