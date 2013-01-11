@@ -18,7 +18,11 @@ module nios_DE2_demo (
 		
 		
 		/* GPIO pins */
-		GPIO_0
+		GPIO_0,
+		
+		// I2C pins
+		I2C_SCLK,
+		I2C_SDAT
 		);
 	
 	input CLK;
@@ -28,6 +32,9 @@ module nios_DE2_demo (
     output	[17:0]	LEDR;
     
 
+	output I2C_SCLK;
+	output I2C_SDAT;
+	
 	/* some audio pins */
 	output AUD_BCLK;
 	output AUD_DACLRCK;
@@ -69,9 +76,12 @@ module nios_DE2_demo (
 		.bclk(AUD_BCLK),
 		.dacdat(AUD_DACDAT),
 		// data
-		.data_left(sqr_data),
-		.data_right(sqr_data),
+		.data_left(i2c_data << 16),
+		.data_right(i2c_data << 16),
 
+//		.data_left(sqr_data),
+//		.data_right(sqr_data),
+		
 		// system clock
 		.sys_clk(CLK),
 		.sys_clk_freq(50_000_000)
@@ -168,6 +178,50 @@ gen_clock gpio_test
 		// never happens
 	end
  end
+ 
+ // Send 8'b00010000 to register 8'b00000101
+ 
+ 
+ 
+ i2c_write i2c_codec
+ (
+	.sda(I2C_SDAT),
+	.scl(I2C_SCLK),
+
+	.addr(8'h35),
+	.register(8'h05),
+	.data(8'b00010000),
+	
+	.sys_clk(CLK),
+	.sys_freq(50_000_000),
+	.i2c_freq(10_000),
+	.write(write_codec),
+	.done(done_codec)
+ );
+
+ reg config_done;
+ reg config_working;
+ always@(posedge CLK)
+ begin
+	if(config_done == 0)
+	begin
+		if (config_working == 0 && done_codec == 0)
+		begin
+			config_working <= 1;
+			write_codec <= 1;
+		end
+	
+		if (config_working == 1 && done_codec == 1)
+		begin
+			write_codec <= 0;
+			config_working <= 0;
+			config_done <= 1;
+		end
+	end
+	
+ 
+ end
+ 
  
  /* test I2C */
  /*

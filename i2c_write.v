@@ -96,9 +96,6 @@ output done; reg done;
 	/* Start bit */
 	if (state == 1)
 	begin
-		// transition to state=0
-		if (i2c_done == 1 && phase_done == 0)
-			;	// do_nothing
 		// do once: send start bit
 		if (i2c_done == 0 && phase_done == 0)
 		begin
@@ -119,9 +116,6 @@ output done; reg done;
 	// Address
 	if (state == 2)
 	begin
-		// transition from state=0 to state=1
-		if (i2c_done == 1 && phase_done == 0)
-			; //do nothing
 		// do once: send data
 		if (i2c_done == 0 && phase_done == 0)
 		begin

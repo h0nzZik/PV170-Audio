@@ -71,7 +71,7 @@ begin
 		cmd_done <= 1;
 	else
 	// 
-	if (stop == 1)
+	if (stop == 1 && cycle == 3)
 		cmd_done <= 1;
 	else
 	// Tx finished
@@ -98,7 +98,27 @@ begin
 	// requires sda == 0 and scl == 1
 	if (stop == 1)
 	begin
-		sda <= 1'bz;
+		if (cycle == 0)
+		begin
+			scl <= 1'b0;
+		end
+		
+		if (cycle == 1)
+		begin
+			sda <= 1'b0;
+		end
+		
+		if (cycle == 2)
+		begin
+			scl <= 1'bz;
+		end
+		
+		if (cycle == 3)
+		begin
+			sda <= 1'bz;		
+		end
+		
+		cycle <= cycle + 2'b1;
 	
 	end
 	
