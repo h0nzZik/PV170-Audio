@@ -137,7 +137,7 @@ begin
 			else
 				bit_no <= bit_no + 4'b1;
 
-		cycle <= cycle + 3'b1;
+		cycle <= cycle + 2'b1;
 		
 	
 	end

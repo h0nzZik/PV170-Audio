@@ -59,7 +59,7 @@ output done; reg done;
  i2c my_bus
  (
 	.sda(sda),
-	.scl(sc1),
+	.scl(scl),
 	.start(i2c_start),
 	.stop(i2c_stop),
 	.data(data_being_sent),
@@ -81,6 +81,7 @@ output done; reg done;
 	/* can we start transmittion? */
 	if (state == 0)
 	begin
+		done <= 0;
 		if (write == 1)
 		begin
 			state <= 1;
@@ -188,7 +189,8 @@ output done; reg done;
 		begin
 			i2c_stop <= 0;
 			phase_done <= 0;
-			state <= 0;		
+			state <= 0;
+			done <= 1;
 		end
 	
 	end
