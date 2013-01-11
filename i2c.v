@@ -8,13 +8,12 @@ module i2c (
 	start,		// send start bit
 	stop,		// send stop bit
 	
-	block,		// 
 	
 	data,
 	write,
 
-	cmd_ok,
-	cmd_err
+	cmd_done,
+	cmd_status,
 	sys_clk
 );
 
@@ -28,8 +27,8 @@ output sda; reg sda = 1'bz;
 output scl; reg scl = 1'bz;
 
 
-output cmd_ok; reg cmd_ok = 0;
-output cmd_err; reg cmd_err = 0;
+output cmd_done; reg cmd_done = 0;
+output cmd_status; reg cmd_status = 0;
 /* watch */
 
 reg lock = 0;
@@ -60,46 +59,85 @@ end
 
 
 reg [1:0] cycle;
-reg [2:0] bit_no;
+reg [3:0] bit_no;
+
+reg ack_bit;
+
 always@(posedge sys_clk)
 begin
-	/* only if sda == 1 and scl == 1 */
+
+	// cmd ok on start
+	if (start == 1)
+		cmd_done <= 1;
+	else
+	// 
+	if (stop == 1)
+		cmd_done <= 1;
+	else
+	// Tx finished
+	if (write == 1'b1 && bit_no == 4'd8 && cycle == 2'd3)
+	begin
+		cmd_status <= ack_bit;
+		cmd_done <= 1;
+	end
+	// Nothing
+	else
+		cmd_done <= 0;
+		
+	// Start bit
+	// requires sda == 1 and scl == 1
 	if (start == 1)
 	begin
 		sda <= 0;
-		cmd_ok <= 1;
-		/* perform reset.. */
+		cmd_done <= 1;
+		// and sometimes perform 'reset'..
 		cycle <= 0;
 		bit_no <= 0;
 	end
 	
+	// requires sda == 0 and scl == 1
+	if (stop == 1)
+	begin
+		sda <= 1'bz;
+	
+	end
+	
+	/* write to i2c */
 	if (write == 1)
 	begin
+		// falling edge
 		if (cycle == 0)
-			scl <= 1'b0;	// low
+			scl <= 1'b0;
 
+		// data Tx
 		if (cycle == 1)
+
+			// this bit may be pulled down by a slave, so..
+			if (bit_no == 4'd8)
+				sda <= 1'bz;
+			else
+			// send data
 			if (data[bit_no] == 1)
 				sda <= 1'bz;
 			else
-				sda <= 1b'0;
+				sda <= 1'b0;
 		
+		// raising edge
 		if (cycle == 2)
-			scl <= 1'bz;	// high
+			scl <= 1'bz;
 
+		// nothing but..
 		if (cycle == 3)
-		begin
-			if (bit_no == 3b'7)
+			if (bit_no == 4'd8)
 			begin
-				cmd_ok <= 1b'1;
-				bit_no <= 3b'0;
+				/* there may be acknoledgement */
+				ack_bit <= sda;
+				bit_no <= 4'd0;
 			end
 			else
-			begin
-				bit_no <= bit_no + 3b'1;
-			end
-		end
-		cycle <= cycle + 3b'1;
+				bit_no <= bit_no + 4'b1;
+
+		cycle <= cycle + 3'b1;
 		
 	
 	end
