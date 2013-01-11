@@ -36,10 +36,11 @@ module nios_DE2_demo (
 	output I2C_SDAT;
 	
 	/* some audio pins */
-	output AUD_BCLK;
-	output AUD_DACLRCK;
+	//output AUD_BCLK;
+	//output AUD_DACLRCK;
 	output AUD_DACDAT;
-	
+	input AUD_BCLK;
+	input AUD_DACLRCK;
 	
 	output [35:0]GPIO_0;
 //    wire clk_div;
@@ -58,7 +59,7 @@ module nios_DE2_demo (
 /*************************************************************/
 
 
-	
+	/*
 	//wire sqr_data;
 	reg [23:0] sqr_data;
 	gen_square sqr
@@ -68,7 +69,7 @@ module nios_DE2_demo (
 		.out_freq(500),
 		.out(sqr_data)
 	);
-
+*/
 	
 	audio_codec audio_out
 	(
@@ -87,24 +88,29 @@ module nios_DE2_demo (
 		.sys_clk_freq(50_000_000)
 	);
 
+	always@(*)
+	begin
+		GPIO_0[6] = AUD_DACLRCK;
+		GPIO_0[7] = AUD_BCLK;
+	end
 	
 	/*
 	audio_codec audio_test
 	(
-		.daclrc(LEDS[0]),
-		.bclk(LEDS[1]),
-		.dacdat(LEDS[2]),
+		.daclrc(GPIO_0[6]),
+		.bclk(GPIO_0[7]),
+		.dacdat(GPIO_0[8]),
 
-		.data_left(sqr_data),
-		.data_right(sqr_data),
+		.data_left(0),
+		.data_right(0),
 
 		.sys_clk(CLK),
 		.sys_clk_freq(50_000_000)
 	);
 
 	*/
-	
-	
+
+
 
 gen_clock some_test
  (
@@ -114,17 +120,17 @@ gen_clock some_test
 	.out_freq(4)
  
  );
- 
+ /*
 gen_clock gpio_test
 (
 	.clock_in(CLK),
 	.in_freq(50_000_000),
 	.clock_out(GPIO_0[0]),
-	.out_freq(1024)
+	.out_freq(500000)
 );
+ */
  
- 
- 
+ /*
   // data to send
  reg [7:0] i2c_data;
  
@@ -178,7 +184,7 @@ gen_clock gpio_test
 		// never happens
 	end
  end
- 
+ */
  // Send 8'b00010000 to register 8'b00000101
  
  
@@ -189,8 +195,8 @@ gen_clock gpio_test
 	.scl(I2C_SCLK),
 
 	.addr(8'h35),
-	.register(8'h05),
-	.data(8'b00010000),
+	.register(config_reg),
+	.data(config_data),
 	
 	.sys_clk(CLK),
 	.sys_freq(50_000_000),
@@ -199,14 +205,41 @@ gen_clock gpio_test
 	.done(done_codec)
  );
 
- reg config_done;
+ reg [7:0] config_data, config_reg;
+ 
+ reg [7:0]config_phase = 0;
  reg config_working;
  always@(posedge CLK)
  begin
-	if(config_done == 0)
+	// Master mode
+	if (config_phase == 0)
 	begin
+		LEDS[0] <= 1;
 		if (config_working == 0 && done_codec == 0)
 		begin
+			config_data <= 8'b01001010;	// default | master
+			config_reg <= 8'b00000111;
+			config_working <= 1;
+			write_codec <= 1;
+		end
+		
+		if (config_working == 1 && done_codec == 1)
+		begin
+			write_codec <= 0;
+			config_working <= 0;
+			config_phase <= 1;			
+		end
+	
+	end
+ 
+	// Turn it up
+	if(config_phase == 1)
+	begin
+		LEDS[1] <= 1;
+		if (config_working == 0 && done_codec == 0)
+		begin
+			config_data <=8'b00010000;	// turn on
+			config_reg <= 8'h05;
 			config_working <= 1;
 			write_codec <= 1;
 		end
@@ -215,10 +248,14 @@ gen_clock gpio_test
 		begin
 			write_codec <= 0;
 			config_working <= 0;
-			config_done <= 1;
+			config_phase <= 2;
 		end
 	end
 	
+	if (config_phase == 2)
+	begin
+		LEDS[2] <= 1;
+	end
  
  end
  

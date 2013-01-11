@@ -18,7 +18,7 @@ reg [31:0]cnt;
 always@(in_freq or out_freq)
 begin
 	/* something magic */
-	lim <= in_freq / (2*out_freq) - 1;
+	lim <= (in_freq / (2*out_freq) - 1 );
 end
 
 

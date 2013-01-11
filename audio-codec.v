@@ -16,9 +16,13 @@
 	sys_clk,
 	sys_clk_freq
  );
- 
+ /*
  output bclk; reg bclk;
  output daclrc; reg daclrc;
+ */
+ input bclk;
+ input daclrc;
+ 
  output dacdat; reg dacdat;
  
  input [23:0] data_left;
@@ -36,7 +40,7 @@
  /* generate BCLK and DACLRC signal */
  
  reg sc;		// synchronization
-  reg [15:0] counter;
+ reg [7:0] counter;
  gen_clock sync
  (
 	.clock_in(sys_clk),
@@ -47,36 +51,35 @@
 // 	.out_freq(1)
  );
  
-
+/*
  always@(negedge sc)
  begin
 	
 
-	/* bclk will go down */
+	// bclk will go down
 	if (bclk == 1)
 	begin
 	
-		/* left channel */
+		// left channel
 		if (counter == 0)
 			daclrc <= 0;
 		if (counter >= 1 && counter <= 24)
-			dacdat <= data_left[24-counter];
+//			dacdat <= data_left[24-counter];
+		dacdat <= 0;
 
-		/* right channel */
+		// right channel
 		if (counter == 128)
 			daclrc <= 1;
 		if (counter >= 129 && counter <= 152)
-			dacdat <= data_right[152 - counter];
+			dacdat <= 0;
+//			dacdat <= data_right[152 - counter];
 	
-		/* increment counter */
-		if (counter == 255)
-			counter <= 0;
-		else
-			counter <= counter + 8'b1;
+		// increment counter 
+		counter <= counter + 8'b1;
 	end
  
 	bclk <= ~bclk;
 	
 end
- 
+ */
  endmodule
