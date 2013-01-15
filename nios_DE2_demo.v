@@ -15,6 +15,7 @@ module nios_DE2_demo (
 		AUD_DACLRCK,
 		AUD_DACDAT,
 		AUD_BCLK,
+		AUD_XCK,
 		
 		
 		/* GPIO pins */
@@ -33,14 +34,15 @@ module nios_DE2_demo (
     
 
 	output I2C_SCLK;
-	output I2C_SDAT;
+	inout I2C_SDAT;
 	
 	/* some audio pins */
-	output AUD_BCLK;
-	output AUD_DACLRCK;
+//	output AUD_BCLK;
+//	output AUD_DACLRCK;
+	output AUD_XCK;
 	output AUD_DACDAT;
-//	input AUD_BCLK;
-//	input AUD_DACLRCK;
+	inout AUD_BCLK;
+	inout AUD_DACLRCK;
 	
 	output [35:0]GPIO_0;
 //    wire clk_div;
@@ -59,40 +61,90 @@ module nios_DE2_demo (
 /*************************************************************/
 
 
-	/*
+	
 	//wire sqr_data;
 	reg [23:0] sqr_data;
 	gen_square sqr
 	(
 		.clock(CLK),
 		.clock_freq(50_000_000),
-		.out_freq(500),
+		.out_freq(5000),
 		.out(sqr_data)
 	);
-*/
+
 	
+	  // data to send
+ reg [7:0] some_data;
+ 
+ always@(posedge KEY[3])
+ begin
+	some_data <= SW[7:0];
+ end
+
+
+reg [23:0] my_data;
+always@(posedge CLK)
+begin
+	my_data <= my_data + 37;
+end
 	audio_codec audio_out
 	(
 		.daclrc(AUD_DACLRCK),
 		.bclk(AUD_BCLK),
 		.dacdat(AUD_DACDAT),
+		.xck(AUD_XCK),
 		// data
-		.data_left(i2c_data << 16),
-		.data_right(i2c_data << 16),
+		.data_left(my_data),
+		.data_right(my_data * 2 / 3),
 
 //		.data_left(sqr_data),
 //		.data_right(sqr_data),
 		
 		// system clock
 		.sys_clk(CLK),
+//		.sys_clk_freq(1_000_000_000)	// will run 20x slower
 		.sys_clk_freq(50_000_000)
 	);
 
-	always@(*)
-	begin
-		GPIO_0[6] = AUD_DACLRCK;
-		GPIO_0[7] = AUD_BCLK;
-	end
+/* audio sniffing */
+ 
+ always@(posedge CLK)
+ begin
+ 
+	if (AUD_DACLRCK == 1)
+		GPIO_0[4] <= 1;
+	else
+		GPIO_0[4] <= 0;
+	
+	if (AUD_BCLK == 1)
+		GPIO_0[5] <= 1;
+	else
+		GPIO_0[5] <= 0;
+		
+	if (AUD_DACDAT == 1)
+		GPIO_0[6] <= 1;
+	else
+		GPIO_0[6] <= 0;
+ 
+ end
+
+/* communication sniffing */
+ 
+ always@(posedge CLK)
+ begin
+ 
+	if (I2C_SDAT == 1)
+		GPIO_0[2] <= 1;
+	else
+		GPIO_0[2] <= 0;
+	
+	if (I2C_SCLK == 1)
+		GPIO_0[3] <= 1;
+	else
+		GPIO_0[3] <= 0;
+ 
+ end
+
 	
 	/*
 	audio_codec audio_test
@@ -110,8 +162,10 @@ module nios_DE2_demo (
 
 	*/
 
-
-
+always@(*)
+begin
+	GPIO_0[1] = 1;
+end
 gen_clock some_test
  (
 	.clock_in(CLK),
@@ -120,7 +174,7 @@ gen_clock some_test
 	.out_freq(4)
  
  );
- /*
+ 
 gen_clock gpio_test
 (
 	.clock_in(CLK),
@@ -128,19 +182,11 @@ gen_clock gpio_test
 	.clock_out(GPIO_0[0]),
 	.out_freq(500000)
 );
- */
  
+ 
+ 
+
  /*
-  // data to send
- reg [7:0] i2c_data;
- 
- always@(posedge KEY[3])
- begin
-	i2c_data <= SW[7:0];
- 
- end
- 
- 
  reg write;
  reg done;
  i2c_write writer
@@ -194,32 +240,49 @@ gen_clock gpio_test
 	.sda(I2C_SDAT),
 	.scl(I2C_SCLK),
 
-	.addr(8'h35),
+	.addr(8'h34),		// 0 bit ?
 	.register(config_reg),
 	.data(config_data),
 	
 	.sys_clk(CLK),
 	.sys_freq(50_000_000),
-	.i2c_freq(10_000),
+	.i2c_freq(4*10_000),
 	.write(write_codec),
 	.done(done_codec)
  );
 
- reg [7:0] config_data, config_reg;
+ reg write_codec;
+ reg done_codec;
  
- reg [7:0]config_phase = 0;
+ reg [7:0] config_data;
+ reg [7:0] config_reg;
+ 
+ reg [7:0] config_phase = 0;
  reg config_working;
+ 
+ 
+ reg [22:0] counter;
+ 
+ 
+ 
+ //reg last_sw=0;
  always@(posedge CLK)
  begin
- /*
-	// Master mode
+	// device reset
+	// wait for an event
 	if (config_phase == 0)
 	begin
-		LEDS[0] <= 1;
+		config_phase <= 10;
+	end
+ 
+ 
+	// Reset
+	if (config_phase == 10)
+	begin
 		if (config_working == 0 && done_codec == 0)
 		begin
-			config_data <= 8'b01001010;	// default | master
-			config_reg <= 8'b00000111;
+			config_data <= 8'b00000000;	// Reset
+			config_reg <=  8'b00011110;	// Reset register
 			config_working <= 1;
 			write_codec <= 1;
 		end
@@ -228,19 +291,42 @@ gen_clock gpio_test
 		begin
 			write_codec <= 0;
 			config_working <= 0;
-			config_phase <= 1;			
+			config_phase <= 20;
 		end
 	
 	end
-*/ 
+
+	
+	// Power ON
+	if(config_phase == 20)
+	begin
+		if (config_working == 0 && done_codec == 0)
+		begin
+			config_data <=8'b00000000;		
+			config_reg <= 8'b00001100;
+			config_working <= 1;
+			write_codec <= 1;
+		end
+	
+		if (config_working == 1 && done_codec == 1)
+		begin
+			write_codec <= 0;
+			config_working <= 0;
+			config_phase <= 30;
+		end
+	end
+
+	/////////////////
+	//	<SKIPPED>  //
+	/////////////////
+ 
 	// Turn soft mute off 
-	if (config_phase == 0)
+	if (config_phase == 30)
 	begin
-		LEDS[0] <= 1;
 		if (config_working == 0 && done_codec == 0)
 		begin
-			config_data <= 8'b00000000;		// /DACMU
-			config_reg <=  8'b00001010;
+			config_data <= 8'b00000110;		// /DACMU
+			config_reg <=  8'b00001010;		// 
 			config_working <= 1;
 			write_codec <= 1;
 		end
@@ -249,19 +335,20 @@ gen_clock gpio_test
 		begin
 			write_codec <= 0;
 			config_working <= 0;
-			config_phase <= 1;			
+			config_phase <= 40;			
 		end
 	
 	end
+	/////////////////
+	//	<SKIPPED/> //
+	/////////////////
 
-
-	// Turn it up
-	if(config_phase == 0)
+	// Enable DAC output
+	if(config_phase == 40)
 	begin
-		LEDS[1] <= 1;
 		if (config_working == 0 && done_codec == 0)
 		begin
-			config_data <=8'b00010010;		// DACSEL + MUTEMIC 
+			config_data <=8'b00111000;		// DACSEL + MUTEMIC 
 			config_reg <= 8'b00001000;		// analog audio path control
 			config_working <= 1;
 			write_codec <= 1;
@@ -271,14 +358,63 @@ gen_clock gpio_test
 		begin
 			write_codec <= 0;
 			config_working <= 0;
-			config_phase <= 2;
+			config_phase <= 50;
 		end
 	end
-	
-	if (config_phase == 2)
+
+	// Master mode	- Oh, missing Xtal..
+	if (config_phase == 50)
 	begin
-		LEDS[2] <= 1;
+		if (config_working == 0 && done_codec == 0)
+		begin
+			config_data <= 8'b01001010;	// default | master
+//			config_data <= 8'b00001010;	// default
+			config_reg <=  8'b00001110;	// R7 - Digital audio interface format
+			config_working <= 1;
+			write_codec <= 1;
+		end
+		
+		if (config_working == 1 && done_codec == 1)
+		begin
+			write_codec <= 0;
+			config_working <= 0;
+			config_phase <= 60;
+		end
+	
 	end
+
+	// Set it active
+	if(config_phase == 60)
+	begin
+		if (config_working == 0 && done_codec == 0)
+		begin
+			config_data <=8'b00000001;		
+			config_reg <= 8'b00010010;
+			config_working <= 1;
+			write_codec <= 1;
+		end
+	
+		if (config_working == 1 && done_codec == 1)
+		begin
+			write_codec <= 0;
+			config_working <= 0;
+			config_phase <= 100;
+		end
+	end
+		
+	
+	
+	if (config_phase == 100)
+	begin
+		LEDS[16] <= 1;
+
+		if (counter == 0)
+			config_phase <= 100;		// or 0
+		
+		counter <= counter + 1;
+	
+	end	
+	
  
  end
  

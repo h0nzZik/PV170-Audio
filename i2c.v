@@ -23,7 +23,7 @@ input stop;
 input sys_clk;
 input [7:0] data;
 
-output sda; reg sda = 1'bz;
+inout sda; reg sda = 1'bz;
 output scl; reg scl = 1'bz;
 
 
@@ -77,12 +77,15 @@ begin
 	// Tx finished
 	if (write == 1'b1 && bit_no == 4'd8 && cycle == 2'd3)
 	begin
-		cmd_status <= ack_bit;
+		cmd_status <= ~ack_bit;
 		cmd_done <= 1;
 	end
 	// Nothing
 	else
+	begin
+		cmd_status <= 0;
 		cmd_done <= 0;
+	end
 		
 	// Start bit
 	// requires sda == 1 and scl == 1

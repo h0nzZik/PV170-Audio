@@ -23,11 +23,11 @@ input [31:0] i2c_freq;
 input sys_clk;
 input write;
 
-input [7:0] addr;
+input [6:0] addr;		// 7b address
 input [7:0] register;
 input [7:0] data;
 
-output sda;
+inout sda;
 output scl;
 
 output done; reg done;
@@ -81,15 +81,19 @@ output done; reg done;
 	/* can we start transmittion? */
 	if (state == 0)
 	begin
-		done <= 0;
-		if (write == 1)
+
+		if (done)
+			done <= 0;
+
+		else if (write == 1)
 		begin
 			state <= 1;
 			i2c_data <= data;
 			i2c_addr <= addr;
 			i2c_reg  <= register;
 		end
-	
+		
+
 	end
  
  
@@ -128,7 +132,14 @@ output done; reg done;
 		begin
 			i2c_write <= 0;
 			phase_done <= 0;
+		
 			state <= 3;
+			/*
+			if (i2c_status == 1)
+					state <= 3;
+				else
+					state <= 20;	//some error
+			*/
 		end
 	end
 	
