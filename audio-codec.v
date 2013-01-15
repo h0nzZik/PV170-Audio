@@ -16,13 +16,13 @@
 	sys_clk,
 	sys_clk_freq
  );
- /*
+ 
  output bclk; reg bclk;
  output daclrc; reg daclrc;
- */
+ /*
  input bclk;
  input daclrc;
- 
+ */
  output dacdat; reg dacdat;
  
  input [23:0] data_left;
@@ -51,7 +51,7 @@
 // 	.out_freq(1)
  );
  
-/*
+
  always@(negedge sc)
  begin
 	
@@ -64,15 +64,15 @@
 		if (counter == 0)
 			daclrc <= 0;
 		if (counter >= 1 && counter <= 24)
-//			dacdat <= data_left[24-counter];
-		dacdat <= 0;
+		dacdat <= data_left[24-counter];
+//		dacdat <= 0;
 
 		// right channel
 		if (counter == 128)
 			daclrc <= 1;
 		if (counter >= 129 && counter <= 152)
-			dacdat <= 0;
-//			dacdat <= data_right[152 - counter];
+//			dacdat <= 0;
+			dacdat <= data_right[152 - counter];
 	
 		// increment counter 
 		counter <= counter + 8'b1;
@@ -81,5 +81,6 @@
 	bclk <= ~bclk;
 	
 end
- */
+ 
  endmodule
+ 

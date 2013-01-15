@@ -36,11 +36,11 @@ module nios_DE2_demo (
 	output I2C_SDAT;
 	
 	/* some audio pins */
-	//output AUD_BCLK;
-	//output AUD_DACLRCK;
+	output AUD_BCLK;
+	output AUD_DACLRCK;
 	output AUD_DACDAT;
-	input AUD_BCLK;
-	input AUD_DACLRCK;
+//	input AUD_BCLK;
+//	input AUD_DACLRCK;
 	
 	output [35:0]GPIO_0;
 //    wire clk_div;
@@ -211,6 +211,7 @@ gen_clock gpio_test
  reg config_working;
  always@(posedge CLK)
  begin
+ /*
 	// Master mode
 	if (config_phase == 0)
 	begin
@@ -231,15 +232,37 @@ gen_clock gpio_test
 		end
 	
 	end
- 
+*/ 
+	// Turn soft mute off 
+	if (config_phase == 0)
+	begin
+		LEDS[0] <= 1;
+		if (config_working == 0 && done_codec == 0)
+		begin
+			config_data <= 8'b00000000;		// /DACMU
+			config_reg <=  8'b00001010;
+			config_working <= 1;
+			write_codec <= 1;
+		end
+		
+		if (config_working == 1 && done_codec == 1)
+		begin
+			write_codec <= 0;
+			config_working <= 0;
+			config_phase <= 1;			
+		end
+	
+	end
+
+
 	// Turn it up
-	if(config_phase == 1)
+	if(config_phase == 0)
 	begin
 		LEDS[1] <= 1;
 		if (config_working == 0 && done_codec == 0)
 		begin
-			config_data <=8'b00010000;	// turn on
-			config_reg <= 8'h05;
+			config_data <=8'b00010010;		// DACSEL + MUTEMIC 
+			config_reg <= 8'b00001000;		// analog audio path control
 			config_working <= 1;
 			write_codec <= 1;
 		end
