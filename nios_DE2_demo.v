@@ -5,6 +5,8 @@
  *
  */
 
+ include <SystemVerilog>;
+ 
 module nios_DE2_demo (
 		CLK,
 		KEY,
@@ -16,97 +18,105 @@ module nios_DE2_demo (
 		AUD_DACDAT,
 		AUD_BCLK,
 		AUD_XCK,
-		
-		
 		/* GPIO pins */
 		GPIO_0,
-		
-		// I2C pins
+		/* I2C pins */
 		I2C_SCLK,
 		I2C_SDAT
-		);
+);
 	
-	input CLK;
-	input	[3:0]	KEY;
-	input	[17:0]	SW;
-	output	[8:0]	LEDG;					
-    output	[17:0]	LEDR;
-    
+/* general IOs	*/
+input 			CLK;
+input	[3:0]	KEY;
+input	[17:0]	SW;
+output	[8:0]	LEDG;					
+output	[17:0]	LEDR;
+/* I2C IO */
+output			I2C_SCLK;
+inout			I2C_SDAT;
+/* some audio pins */
+output			AUD_XCK;
+output			AUD_DACDAT;
+inout			AUD_BCLK;
+inout			AUD_DACLRCK;
+output	[35:0]	GPIO_0;
+reg		[17:0]	LEDS;
 
-	output I2C_SCLK;
-	inout I2C_SDAT;
-	
-	/* some audio pins */
-//	output AUD_BCLK;
-//	output AUD_DACLRCK;
-	output AUD_XCK;
-	output AUD_DACDAT;
-	inout AUD_BCLK;
-	inout AUD_DACLRCK;
-	
-	output [35:0]GPIO_0;
-//    wire clk_div;
 
-	reg [17:0] LEDS;
-	
-	assign LEDR = LEDS;
-	
-	//assign LEDR = KEY[1] ?  SW : 18'h3FFFF;
-    wire rst;
-	assign rst = KEY[0];
+assign LEDR = LEDS;
+wire rst;
+assign rst = KEY[0];
 	
 
 
 
 /*************************************************************/
 
+reg signed [4:0] test;
 
-	
-	//wire sqr_data;
-	reg [23:0] sqr_data;
-	gen_square sqr
-	(
-		.clock(CLK),
-		.clock_freq(50_000_000),
-		.out_freq(5000),
-		.out(sqr_data)
-	);
-
-	
-	  // data to send
- reg [7:0] some_data;
- 
- always@(posedge KEY[3])
- begin
-	some_data <= SW[7:0];
- end
-
-
-reg [23:0] my_data;
+ // generate audio data
+reg signed [23:0] my_data;
+/*
 always@(posedge CLK)
 begin
-	my_data <= my_data + 37;
+	test <= test + 1;
+	if (my_data + 37 > my_data)
+		my_data <= my_data + 37;
+	else
+		my_data <= 0;
 end
-	audio_codec audio_out
-	(
-		.daclrc(AUD_DACLRCK),
-		.bclk(AUD_BCLK),
-		.dacdat(AUD_DACDAT),
-		.xck(AUD_XCK),
-		// data
-		.data_left(my_data),
-		.data_right(my_data * 2 / 3),
+*/
 
-//		.data_left(sqr_data),
-//		.data_right(sqr_data),
-		
-		// system clock
-		.sys_clk(CLK),
-//		.sys_clk_freq(1_000_000_000)	// will run 20x slower
-		.sys_clk_freq(50_000_000)
-	);
+gen_saw saw0
+(
+	.out(my_data),
+	.freq(700),
+	.sys_clk(CLK),
+	.sys_clk_freq(50_000_000),
+	.debug_out(tmp)
+);
 
-/* audio sniffing */
+reg [31:0] tmp;
+
+assign LEDS[17:7] = tmp[10:0];
+
+// volume ctrl
+always@( * )
+begin
+	data_left = my_data / (17 - SW[3:0]);
+	if (my_data > 0)
+		data_right = 24'h7fffff;
+	else
+		data_right = 0;
+//	data_right = my_data / (16 - SW[7:4]);
+	LEDS[3:0] = SW[3:0];
+end
+
+reg signed [23:0] data_left;
+reg signed [23:0] data_right;
+
+
+audio_codec audio_out
+(
+	/* audio pins */
+	.daclrc			(AUD_DACLRCK),
+	.bclk			(AUD_BCLK),
+	.dacdat			(AUD_DACDAT),
+	.xck			(AUD_XCK),
+	/* data pins */
+	.data_left		(data_left),
+	.data_right		(data_right),
+	/* system pins */
+	.sys_clk		(CLK),
+	.sys_clk_freq	(50_000_000),
+	.reset			(rst),
+	/* I2C pins */
+	.i2c_scl		(I2C_SCLK),
+	.i2c_sda		(I2C_SDAT)
+);
+
+/*
+// audio communication sniffing
  
  always@(posedge CLK)
  begin
@@ -128,7 +138,7 @@ end
  
  end
 
-/* communication sniffing */
+// i2c communication sniffing
  
  always@(posedge CLK)
  begin
@@ -144,28 +154,8 @@ end
 		GPIO_0[3] <= 0;
  
  end
-
-	
-	/*
-	audio_codec audio_test
-	(
-		.daclrc(GPIO_0[6]),
-		.bclk(GPIO_0[7]),
-		.dacdat(GPIO_0[8]),
-
-		.data_left(0),
-		.data_right(0),
-
-		.sys_clk(CLK),
-		.sys_clk_freq(50_000_000)
-	);
-
-	*/
-
-always@(*)
-begin
-	GPIO_0[1] = 1;
-end
+*/
+// led blinking
 gen_clock some_test
  (
 	.clock_in(CLK),
@@ -185,372 +175,4 @@ gen_clock gpio_test
  
  
  
-
- /*
- reg write;
- reg done;
- i2c_write writer
- (
-	.sda(GPIO_0[1]),
-	.scl(GPIO_0[2]),
-
-	.addr(8'h35),
-	.register(8'h04),
-	.data(i2c_data),
-	
-	.sys_clk(CLK),
-	.sys_freq(50_000_000),
-	.i2c_freq(10_000),
-	.write(write),
-	.done(done)
- );
- 
- reg [7:0] phase;
- reg working;
- always@(posedge CLK)
- begin
-	// Send it all
-	if (phase == 0)
-	begin
-		if (working == 0 && done == 0)
-		begin
-			working <= 1;
-			write <= 1;
-		end
-		if (working == 1 && done == 1)
-		begin
-			write <= 0;
-			working <= 0;
-			phase <= 0;		// there is only one phase ;)
-		end
-	end
-	
-	if (phase == 1)
-	begin
-		// never happens
-	end
- end
- */
- // Send 8'b00010000 to register 8'b00000101
- 
- 
- 
- i2c_write i2c_codec
- (
-	.sda(I2C_SDAT),
-	.scl(I2C_SCLK),
-
-	.addr(8'h34),		// 0 bit ?
-	.register(config_reg),
-	.data(config_data),
-	
-	.sys_clk(CLK),
-	.sys_freq(50_000_000),
-	.i2c_freq(4*10_000),
-	.write(write_codec),
-	.done(done_codec)
- );
-
- reg write_codec;
- reg done_codec;
- 
- reg [7:0] config_data;
- reg [7:0] config_reg;
- 
- reg [7:0] config_phase = 0;
- reg config_working;
- 
- 
- reg [22:0] counter;
- 
- 
- 
- //reg last_sw=0;
- always@(posedge CLK)
- begin
-	// device reset
-	// wait for an event
-	if (config_phase == 0)
-	begin
-		config_phase <= 10;
-	end
- 
- 
-	// Reset
-	if (config_phase == 10)
-	begin
-		if (config_working == 0 && done_codec == 0)
-		begin
-			config_data <= 8'b00000000;	// Reset
-			config_reg <=  8'b00011110;	// Reset register
-			config_working <= 1;
-			write_codec <= 1;
-		end
-		
-		if (config_working == 1 && done_codec == 1)
-		begin
-			write_codec <= 0;
-			config_working <= 0;
-			config_phase <= 20;
-		end
-	
-	end
-
-	
-	// Power ON
-	if(config_phase == 20)
-	begin
-		if (config_working == 0 && done_codec == 0)
-		begin
-			config_data <=8'b00000000;		
-			config_reg <= 8'b00001100;
-			config_working <= 1;
-			write_codec <= 1;
-		end
-	
-		if (config_working == 1 && done_codec == 1)
-		begin
-			write_codec <= 0;
-			config_working <= 0;
-			config_phase <= 30;
-		end
-	end
-
-	/////////////////
-	//	<SKIPPED>  //
-	/////////////////
- 
-	// Turn soft mute off 
-	if (config_phase == 30)
-	begin
-		if (config_working == 0 && done_codec == 0)
-		begin
-			config_data <= 8'b00000110;		// /DACMU
-			config_reg <=  8'b00001010;		// 
-			config_working <= 1;
-			write_codec <= 1;
-		end
-		
-		if (config_working == 1 && done_codec == 1)
-		begin
-			write_codec <= 0;
-			config_working <= 0;
-			config_phase <= 40;			
-		end
-	
-	end
-	/////////////////
-	//	<SKIPPED/> //
-	/////////////////
-
-	// Enable DAC output
-	if(config_phase == 40)
-	begin
-		if (config_working == 0 && done_codec == 0)
-		begin
-			config_data <=8'b00111000;		// DACSEL + MUTEMIC 
-			config_reg <= 8'b00001000;		// analog audio path control
-			config_working <= 1;
-			write_codec <= 1;
-		end
-	
-		if (config_working == 1 && done_codec == 1)
-		begin
-			write_codec <= 0;
-			config_working <= 0;
-			config_phase <= 50;
-		end
-	end
-
-	// Master mode	- Oh, missing Xtal..
-	if (config_phase == 50)
-	begin
-		if (config_working == 0 && done_codec == 0)
-		begin
-			config_data <= 8'b01001010;	// default | master
-//			config_data <= 8'b00001010;	// default
-			config_reg <=  8'b00001110;	// R7 - Digital audio interface format
-			config_working <= 1;
-			write_codec <= 1;
-		end
-		
-		if (config_working == 1 && done_codec == 1)
-		begin
-			write_codec <= 0;
-			config_working <= 0;
-			config_phase <= 60;
-		end
-	
-	end
-
-	// Set it active
-	if(config_phase == 60)
-	begin
-		if (config_working == 0 && done_codec == 0)
-		begin
-			config_data <=8'b00000001;		
-			config_reg <= 8'b00010010;
-			config_working <= 1;
-			write_codec <= 1;
-		end
-	
-		if (config_working == 1 && done_codec == 1)
-		begin
-			write_codec <= 0;
-			config_working <= 0;
-			config_phase <= 100;
-		end
-	end
-		
-	
-	
-	if (config_phase == 100)
-	begin
-		LEDS[16] <= 1;
-
-		if (counter == 0)
-			config_phase <= 100;		// or 0
-		
-		counter <= counter + 1;
-	
-	end	
-	
- 
- end
- 
- 
- /* test I2C */
- /*
- reg i2c_clk;
- 
- gen_clock i2c_sys_clock
- (
-	.clock_in(CLK),
-	.in_freq(50_000_000),
-	.clock_out(i2c_clk),
-	.out_freq(10_000)
- 
- );
- 
- reg i2c_start;
- reg i2c_stop;
- reg i2c_write;
- reg i2c_done;
- reg i2c_status;
- 
- i2c my_bus
- (
-	.sda(GPIO_0[1]),
-	.scl(GPIO_0[2]),
-	.start(i2c_start),
-	.stop(i2c_stop),
-	.data(i2c_data),
-	.write(i2c_write),
-	.cmd_done(i2c_done),
-	.cmd_status(i2c_status),
-	.sys_clk(i2c_clk)
- );
- 
- 
-
- 
- 
- 
- 
- reg [7:0] state = 0;
- reg phase_done = 0;
- always@(posedge CLK)
- begin
- 
-	// send start bit
-	if (state == 0)
-	begin
-		// transition to state=0
-		if (i2c_done == 1 && phase_done == 0)
-			;	// do_nothing
-		// do once: send start bit
-		if (i2c_done == 0 && phase_done == 0)
-		begin
-			i2c_start <= 1;
-			phase_done <= 1;
-		end
-		if (i2c_done == 1 && phase_done == 1 )
-		// clear request bit
-		begin
-			i2c_start <= 0;
-			phase_done <= 0;
-			state <= 1;
-		
-		end
-	
-	end
-	
-	// send data
-	if (state == 1)
-	begin
-		// transition from state=0 to state=1
-		if (i2c_done == 1 && phase_done == 0)
-			; //do nothing
-		// do once: send data
-		if (i2c_done == 0 && phase_done == 0)
-		begin
-			i2c_write <= 1;
-			phase_done <= 1;
-		end
-		// clear request bit
-		if (i2c_done == 1 && phase_done == 1)
-		begin
-			i2c_write <= 0;
-			phase_done <= 0;
-			state <= 2;
-		end
-	end
-	
-	// send stop bit
-	
-	if (state == 2)
-	begin
-		if (i2c_done == 0 && phase_done == 0)
-		begin
-			i2c_stop <= 1;
-			phase_done <= 1;
-		end
-		
-		if (i2c_done == 1 && phase_done == 1)
-		begin
-			i2c_stop <= 0;
-			phase_done <= 0;
-			state <= 0;		
-		end
-	
-	end
- 
- 
- end
- 
- */
- 
- 
-/**************************************************************	
-	clk_div divider1
-(
-	.CLK(CLK) ,	// input  CLK_sig
-	.RST(rst) ,	// input  RST_sig
-	.CLK_DIV(clk_div) 	// output  CLK_DIV_sig
-);
-    defparam divider1.divider = 25_000_000;
-
-	always@(posedge CLK)
-	begin
-	
-	if(!rst) 
-		LEDS <= 8'b0;
-	else if(clk_div)
-		begin
-		
-			LEDS <= LEDS * 2 + (LEDS[17] ? 1'b0 : 1'b1) ;
-		
-		end
-	end
-********************************************************************/	
 endmodule
