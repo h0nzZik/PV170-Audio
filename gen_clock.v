@@ -10,6 +10,7 @@ input clock_in;
 input [31:0]in_freq;
 input [31:0]out_freq;
 output clock_out;
+reg		clock_out;
 
 reg [31:0]lim;
 reg [31:0]cnt;

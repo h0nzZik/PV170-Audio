@@ -1,5 +1,4 @@
 include <SystemVerilog>;
-
 module mixer(
 	/* input data */
 	data_in,
@@ -7,6 +6,8 @@ module mixer(
 	/* output */
 	data_out
 );
+
+
 
 input [15:0]data_in [7:0]; 
 

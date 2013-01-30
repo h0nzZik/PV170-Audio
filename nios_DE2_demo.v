@@ -67,29 +67,52 @@ begin
 end
 */
 
+/* duty */
+/*
+reg [7:0] duty_0;
+
+
+always@( * )
+begin
+	if (SW[15:8] == 0)
+		duty_0 = 8'b1;
+	else
+		duty_0 = SW[15:8];
+end
+*/
+
+wire [7:0] duty_0;
+assign duty_0 = (SW[15:8] == 0)? 8'd1 : SW[15:8];
+reg [23:0] tr_data;
+gen_triangle t0
+(
+	.out(tr_data),
+	.freq(700),
+	.sys_clk(CLK),
+	.sys_clk_freq(50_000_000),
+	.duty(duty_0),
+	.debug_out(tmp),
+	.debug_led(LEDS[0])
+);
+
+
 gen_saw saw0
 (
 	.out(my_data),
 	.freq(700),
 	.sys_clk(CLK),
-	.sys_clk_freq(50_000_000),
-	.debug_out(tmp)
+	.sys_clk_freq(50_000_000)
 );
 
 reg [31:0] tmp;
 
-assign LEDS[17:7] = tmp[10:0];
+//assign LEDS[17:4] = tmp[13:0];
 
 // volume ctrl
 always@( * )
 begin
-	data_left = my_data / (17 - SW[3:0]);
-	if (my_data > 0)
-		data_right = 24'h7fffff;
-	else
-		data_right = 0;
-//	data_right = my_data / (16 - SW[7:4]);
-	LEDS[3:0] = SW[3:0];
+	data_left = my_data / (5'd16 - SW[3:0]);
+	data_right = tr_data /(5'd16 - SW[7:4]);
 end
 
 reg signed [23:0] data_left;
@@ -115,53 +138,14 @@ audio_codec audio_out
 	.i2c_sda		(I2C_SDAT)
 );
 
-/*
-// audio communication sniffing
- 
- always@(posedge CLK)
- begin
- 
-	if (AUD_DACLRCK == 1)
-		GPIO_0[4] <= 1;
-	else
-		GPIO_0[4] <= 0;
-	
-	if (AUD_BCLK == 1)
-		GPIO_0[5] <= 1;
-	else
-		GPIO_0[5] <= 0;
-		
-	if (AUD_DACDAT == 1)
-		GPIO_0[6] <= 1;
-	else
-		GPIO_0[6] <= 0;
- 
- end
 
-// i2c communication sniffing
- 
- always@(posedge CLK)
- begin
- 
-	if (I2C_SDAT == 1)
-		GPIO_0[2] <= 1;
-	else
-		GPIO_0[2] <= 0;
-	
-	if (I2C_SCLK == 1)
-		GPIO_0[3] <= 1;
-	else
-		GPIO_0[3] <= 0;
- 
- end
-*/
 // led blinking
 gen_clock some_test
  (
 	.clock_in(CLK),
 	.in_freq(50_000_000),
-	.clock_out(LEDS[5]),
-	.out_freq(4)
+	.clock_out(LEDS[1]),
+	.out_freq(1)
  
  );
  

@@ -25,10 +25,10 @@
 	reset
  );
  
-output		xck;
+output	xck;	reg	xck;
 input	bclk;
 input daclrc;
-output dacdat; reg dacdat;
+output dacdat;	reg dacdat;
 
 input	[23:0]	data_left;	// signed
 input	[23:0]	data_right;	// signed
@@ -93,7 +93,7 @@ inout			i2c_scl;
 			dacdat <= data_right[24-counter];
 		else
 			dacdat <= data_left[24-counter];		
-		counter <= counter + 1;
+		counter <= counter + 1'b1;
 	end
 	else
 		dacdat <= 0;
