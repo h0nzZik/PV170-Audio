@@ -4,9 +4,7 @@ module gen_triangle (
 
 	sys_clk,
 	sys_clk_freq,
-	duty,
-	debug_out,
-	debug_led
+	duty
 );
 
 
@@ -18,8 +16,6 @@ output	[23:0]	out;
 reg		[23:0]	out;
 
 input		[7:0]		duty;				// 1 to 255
-output	[31:0]	debug_out;
-output				debug_led;
 
 // generate 'data_reset' clock
 
@@ -33,32 +29,6 @@ gen_clock data_reset_clock
 );
 
 
-/*
-// sys_clk_freq at least 2^20 Hz (sizeof(tmp) - no_bits(sys_clock_freq) + 1)))
-// 2x faster
-wire [20:0] increment;
-wire [20:0] decrement;
-
-wire [31:0] time_to_change;
-reg [31:0] time_elapsed;
-
-
-assign debug_out = decrement;
-
-
-wire	[45:0]	big_f;	// 14 bits == frequency,
-						// 24 bits == output range, 
-						// 8  bits == duty
-
-assign big_f = (freq << (24+8)) / sys_clk_freq;
-assign increment = (duty != 0) ? (big_f / duty) : 0;
-assign decrement = big_f / (256 - duty);
-
-wire	[39:0]	duty_freq;
-assign duty_freq = sys_clk_freq * duty;
-assign time_to_change = duty_freq / (256 * freq);
-
-*/
 
 /* new and better */
 wire	[31:0]	ticks_per_period;
@@ -92,9 +62,17 @@ begin
 			out <= out + increment;
 			ticks_elapsed <= ticks_elapsed + 1;
 		end
-		else
+		else if (ticks_elapsed < ticks_per_period)
 		begin
 			out <= out - decrement;
+			ticks_elapsed <= ticks_elapsed + 1;
+		end
+		else
+		begin
+			/* reset */
+			out <= 0;
+			ticks_elapsed <= 0;
+			
 		end
 	end
 	last_reset <= data_reset;

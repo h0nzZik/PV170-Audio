@@ -15,7 +15,7 @@ module audio (
 		AUD_BCLK,
 		AUD_XCK,
 		/* GPIO pins */
-		GPIO_0,
+//		GPIO_0,
 		/* I2C pins */
 		I2C_SCLK,
 		I2C_SDAT
@@ -35,15 +35,48 @@ output			AUD_XCK;
 output			AUD_DACDAT;
 inout			AUD_BCLK;
 inout			AUD_DACLRCK;
-output	[35:0]	GPIO_0;
 reg		[17:0]	LEDS = 0;
 
 
 assign LEDR = LEDS;
 wire rst;
 assign rst = KEY[0];
-	
 
+
+
+
+
+reg 	[7:0]		incm;
+/* test monostable */
+monostable m0
+(
+	.usec(2_000_000),
+	.sys_clk(CLK),
+	.sys_clk_freq(50_000_000),
+	.incomplete(incm),
+	.start(~KEY[1])
+);
+assign	LEDS[15:8] = incm;
+
+
+reg [7:0] state;
+reg [31:0]f;
+
+/* play a chord */
+always@(posedge (incm == 0))
+begin
+	if (state == 0) begin
+			f <= 700;
+			state <= state + 1;
+	end else if (state == 1) begin
+			f <= 882;
+			state <= state + 1;
+	end else begin
+			f <= 1049;
+			state <= 0;
+	end
+
+end
 
 
 /*************************************************************/
@@ -59,12 +92,10 @@ reg [23:0] tr_data;
 gen_triangle t0
 (
 	.out(tr_data),
-	.freq(700),
+	.freq(f),
 	.sys_clk(CLK),
 	.sys_clk_freq(50_000_000),
 	.duty(duty_0),
-	.debug_out(tmp),
-	.debug_led(LEDS[0])
 );
 
 
@@ -76,15 +107,17 @@ gen_saw saw0
 	.sys_clk_freq(50_000_000)
 );
 
-reg [31:0] tmp;
+wire [23+8:0]	mtr;
+assign mtr = tr_data * incm;
 
-//assign LEDS[17:4] = tmp[13:0];
+wire [23+8:0]	mtr_data;
+assign mtr_data = mtr / 255;
 
 // volume ctrl
 always@( * )
 begin
-	data_left = tr_data / (5'd16 - SW[3:0]);
-	data_right = tr_data /(5'd16 - SW[7:4]);
+	data_left = mtr_data / (5'd16 - SW[3:0]);
+	data_right = mtr_data /(5'd16 - SW[7:4]);
 end
 
 reg signed [23:0] data_left;
@@ -120,7 +153,7 @@ gen_clock some_test
 	.out_freq(1)
  
  );
- 
+ /*
 gen_clock gpio_test
 (
 	.clock_in(CLK),
@@ -128,7 +161,7 @@ gen_clock gpio_test
 	.clock_out(GPIO_0[0]),
 	.out_freq(500000)
 );
- 
+*/ 
  
  
 endmodule
