@@ -15,9 +15,9 @@
 
 
 QUARTUS_VERSION = "8.0"
-DATE = "12:38:36  May 07, 2009"
+DATE = "10:10:10  Feb 04, 2013"
 
 
 # Revisions
 
-PROJECT_REVISION = "nios_DE2_demo"
+PROJECT_REVISION = "Audio"

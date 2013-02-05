@@ -10,14 +10,14 @@ module gen_triangle (
 );
 
 
-input	[15:0]	freq;
-input	[31:0]	sys_clk_freq;
+input	[15:0]	freq;			// 1 to 65_535
+input	[31:0]	sys_clk_freq;	// >= 1 MHz
 input			sys_clk;
 
 output	[23:0]	out;
 reg		[23:0]	out;
 
-input	[7:0]	duty;	// 1 to 255
+input	[7:0]	duty;			// 1 to 255
 output	[31:0]	debug_out;
 output			debug_led;
 
