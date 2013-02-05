@@ -83,7 +83,7 @@ reg [31:0] tmp;
 // volume ctrl
 always@( * )
 begin
-	data_left = my_data / (5'd16 - SW[3:0]);
+	data_left = tr_data / (5'd16 - SW[3:0]);
 	data_right = tr_data /(5'd16 - SW[7:4]);
 end
 
