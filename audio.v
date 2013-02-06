@@ -25,7 +25,7 @@ module audio (
 input 			CLK;
 input	[3:0]	KEY;
 input	[17:0]	SW;
-output	[8:0]	LEDG = 0;					
+output	[8:0]	LEDG;					
 output	[17:0]	LEDR;
 /* I2C IO */
 output			I2C_SCLK;
@@ -46,6 +46,75 @@ assign rst = KEY[0];
 
 
 
+
+
+
+/* 8 Hz clock */
+reg c_16Hz;
+gen_clock clock_16Hz
+(
+	.clock_in(CLK),
+	.in_freq(50_000_000),
+	.out_freq(16),
+	.clock_out(c_16Hz)
+
+);
+
+
+reg mem_in;
+reg mem_out;
+ram ram1
+(
+	.address(mem_addr),
+	.clock(c_16Hz),
+	.q(mem_out),
+	.wren(wren),
+	.data(mem_in)
+);
+
+
+reg [3:0]	mem_addr;
+reg [1:0]	mem_phase;
+
+reg q;
+
+always@(posedge c_16Hz)
+begin
+	/* setup it for read */
+	if (mem_phase == 0)
+	begin
+		wren <= 0;
+	end
+	else
+	/* read it */
+	if (mem_phase == 1)
+	begin
+		q <= mem_out;
+	end
+	else
+	/* setup for write */
+	if (mem_phase == 2)
+	begin
+		wren <= 1;
+		mem_in <= (q || ~KEY[2]) && KEY[3];
+	end
+	else
+	if (mem_phase == 3)
+	begin
+		wren <= 0;
+		mem_addr <= mem_addr + 1;
+	end
+
+	mem_phase <= mem_phase + 1;
+end
+
+assign LEDS[17:2] = 1 << (15 - mem_addr);
+
+assign LEDG[1] = q;
+
+
+/***************************/
+
 reg 	[7:0]		incm;
 /* test monostable */
 monostable m0
@@ -56,14 +125,14 @@ monostable m0
 	.incomplete(incm),
 	.start(~KEY[1])
 );
-assign	LEDS[15:8] = incm;
+//assign	LEDS[15:8] = incm;
 
 
 reg [7:0] state;
 reg [31:0]f;
 
 /* play a chord */
-always@(posedge (incm == 0))
+always@(posedge KEY[1])
 begin
 	if (state == 0) begin
 			f <= 700;
