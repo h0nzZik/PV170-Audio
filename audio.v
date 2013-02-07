@@ -15,7 +15,7 @@ module audio (
 		AUD_BCLK,
 		AUD_XCK,
 		/* GPIO pins */
-//		GPIO_0,
+		GPIO_0,
 		/* I2C pins */
 		I2C_SCLK,
 		I2C_SDAT
@@ -42,10 +42,24 @@ assign LEDR = LEDS;
 wire rst;
 assign rst = KEY[0];
 
+input [35:0] GPIO_0;
 
+wire enc_a;
+wire enc_b;
 
+assign enc_a = GPIO_0[0];
+assign enc_b = GPIO_0[1];
 
+reg [7:0]c;
+always@(posedge enc_a)
+begin
+	if (enc_b && c != 255)
+		c <= c + 1;
+	if (!enc_b && c != 0)
+		c <= c - 1;
+end
 
+assign LEDS[9:2] = c;
 
 
 
@@ -108,7 +122,7 @@ begin
 	mem_phase <= mem_phase + 1;
 end
 
-assign LEDS[17:2] = 1 << (15 - mem_addr);
+//assign LEDS[17:2] = 1 << (15 - mem_addr);
 
 assign LEDG[1] = q;
 
