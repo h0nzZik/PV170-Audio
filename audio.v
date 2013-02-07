@@ -50,16 +50,22 @@ wire enc_b;
 assign enc_a = GPIO_0[0];
 assign enc_b = GPIO_0[1];
 
-reg [7:0]c;
-always@(posedge enc_a)
-begin
-	if (enc_b && c != 255)
-		c <= c + 1;
-	if (!enc_b && c != 0)
-		c <= c - 1;
-end
 
-assign LEDS[9:2] = c;
+reg [31:0] rot_data;
+rotary_32b rot0
+(
+	.A(enc_a),
+	.B(enc_b),
+	.data(rot_data),
+	.bound_upper(255),
+	.bound_lower(0),
+	.sys_clk(CLK),
+	.sys_clk_freq(50_000_000),
+	.udelay(20_000)
+);
+
+
+assign LEDS[9:2] = rot_data[7:0];
 
 
 
@@ -232,7 +238,7 @@ gen_clock some_test
  (
 	.clock_in(CLK),
 	.in_freq(50_000_000),
-	.clock_out(LEDS[1]),
+	.clock_out(LEDG[8]),
 	.out_freq(1)
  
  );

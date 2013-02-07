@@ -1,3 +1,4 @@
+/* FIXME: check 'start' every 'sys_clk' cycle */
 module monostable 
 (
 	usec,
