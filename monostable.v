@@ -1,4 +1,7 @@
-/* FIXME: check 'start' every 'sys_clk' cycle */
+/**
+ * Monostable circuit
+ */
+
 module monostable 
 (
 	usec,
@@ -9,10 +12,10 @@ module monostable
 );
 
 input		[31:0]	sys_clk_freq;	// > 1 MHz (>= 2^20 Hz)
-input					sys_clk;
-input		[31:0]	usec;				// how many microseconds would you like?
-input					start;			// input
-output	[7:0]		incomplete;		// 'percentage'
+input				sys_clk;
+input		[31:0]	usec;			// how many microseconds would you like?
+input				start;			// input
+output		[7:0]	incomplete;		// 'percentage'
 
 
 reg		usec_clock;
@@ -27,18 +30,28 @@ gen_clock data_reset_clock
 reg		[31:0]	usec_lapsed;
 reg		[31:0]	usec_sampled;
 
-always@(posedge usec_clock)
+
+reg usec_clk_last;
+always@(posedge sys_clk)
 begin
+	// start timing
 	if (start)
 	begin
 		usec_lapsed <= 0;
 		usec_sampled <= usec;		
 	
 	end
+	// increment counter on raising edge of usec_clock
 	else
-	if (usec_lapsed < usec)
-		usec_lapsed <= usec_lapsed + 1;
+	begin
+		if (usec_clk_last == 0 && usec_clock == 1)
+		begin
+		if (usec_lapsed < usec)
+			usec_lapsed <= usec_lapsed + 1;
+		end
 
+	end
+	usec_clk_last <= usec_clock;
 end
 
 

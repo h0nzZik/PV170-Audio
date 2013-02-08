@@ -1,3 +1,7 @@
+/**
+ * Rotary encoder driver
+ */
+
 module rotary_32b
 (
 	A,
@@ -24,7 +28,7 @@ reg		[31:0]	data;
 
 
 
-/* filter */
+/* bounce filter timer */
 reg [31:0] lock;
 reg trig_it;
 monostable m
@@ -41,7 +45,7 @@ monostable m
 reg A_last;
 always@(posedge sys_clk)
 begin
-	/* filter */
+	/* bounce filter */
 	if (lock != 0)
 	begin
 		trig_it <= 0;
