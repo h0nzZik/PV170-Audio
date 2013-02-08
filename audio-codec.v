@@ -72,19 +72,6 @@ inout			i2c_scl;
   reg old_daclrc;
   always@(negedge bclk)
   begin
-  /*
-	if (counter >= 1 && counter <= 24)
-		dacdat <= data_left[24-counter];
-	else if (counter >= 129 && counter <= 152)
-			dacdat <= data_right[152 - counter];
-	else
-		dacdat <= 0;
-
-	if (old_dacdat == 1 && dacdat == 0)
-		counter <= 1;
-	else
-		counter <= counter + 1;
-	*/
 	if (old_daclrc != daclrc)
 		counter <= 0;
 	else if (counter < 24)
@@ -101,39 +88,36 @@ inout			i2c_scl;
 	
 	old_daclrc <= daclrc;
   end
-/* 
- always@(negedge sc)
- begin
-	// bclk will go down
-	if (bclk == 1)
-	begin
-	
-		// left channel
-//		if (counter == 0)
-//			daclrc <= 0;
-		//else
-		if (counter >= 1 && counter <= 24)
-			dacdat <= data_left[24-counter];
-		//	dacdat <= 1;
 
-		// right channel
-//		else if (counter == 128)
-//			daclrc <= 1;
-		else if (counter >= 129 && counter <= 152)
-			dacdat <= data_right[152 - counter];
-//			dacdat <= 1;
-		else
-			dacdat <= 0;
-
-	
-		// increment counter 
-		counter <= counter + 8'b1;
-	end
+/////////////////////////////////////////////
+///////////////////// Memory ////////////////
+/////////////////////////////////////////////
  
-//	bclk <= ~bclk;
+/*
+ reg [7:0] addr;
+ reg [7:0] rom_out;
+ reg rom_clk;
+ 
+ config_rom rom
+ (
+	.address(addr),
+	.clock(rom_clk),
+	.q(rom_out)
+ );
+ 
+ rom2i2c r2i
+ (
+	.rom_addr(addr),
+	.rom_clk(rom_clk),
+	.rom_out(rom_out),
 	
-end
-*/
+	.i2c_sda(i2c_sda),
+	.i2c_scl(i2c_scl)
+ );
+ 
+ 
+ 
+ */
  
  /////////////////////
  // Setup the Codec //
