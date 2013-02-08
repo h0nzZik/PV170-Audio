@@ -51,6 +51,9 @@ assign enc_a = GPIO_0[0];
 assign enc_b = GPIO_0[1];
 
 
+assign LEDS[11] = enc_a;
+assign LEDS[12] = enc_b;
+
 reg [31:0] rot_data;
 rotary_32b rot0
 (
@@ -61,7 +64,7 @@ rotary_32b rot0
 	.bound_lower(0),
 	.sys_clk(CLK),
 	.sys_clk_freq(50_000_000),
-	.udelay(20_000)
+	.udelay(50_000)
 );
 
 
@@ -176,7 +179,8 @@ reg signed [4:0] test;
 reg signed [23:0] my_data;
 
 wire [7:0] duty_0;
-assign duty_0 = (SW[15:8] == 0)? 8'd1 : SW[15:8];
+//assign duty_0 = (SW[15:8] == 0)? 8'd1 : SW[15:8];
+assign duty_0 = (rot_data == 0)? 8'd1 : rot_data;
 reg [23:0] tr_data;
 gen_triangle t0
 (
@@ -184,7 +188,7 @@ gen_triangle t0
 	.freq(f),
 	.sys_clk(CLK),
 	.sys_clk_freq(50_000_000),
-	.duty(duty_0),
+	.duty(duty_0)
 );
 
 
