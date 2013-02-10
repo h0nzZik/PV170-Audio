@@ -1,0 +1,112 @@
+Report k projektu 'Audio'
+========================
+Zadání
+======
+Projekt, založený na vývojovém kitu "Altera DE2", má za cíl přimět vestavěný audiko kodek ke spolupráci a s jeho pomocí protlačit na sluchátkový výstup (alespoň částečně) smysluplná zvuková data.
+
+
+Funkce
+======
+V současné době dělá program následující věci:
+***
+* Bliká zelenou ledkou. Užitečná funkce, ukazující, že je alespoň něco v pořádku.
+* Posouvá červené světélko po řadě šestnácti červených LED. Životně důležitý indikátor stavu.
+* Svítící LEDka označuje místo v časové smyčce, které je v tomto okamžiku přehráváno (zobrazuje se na LEDG[1]) a přehráváno (daty ze vstupu) ;)
+* Pokud je tlačítko KEY[2] stisknuté v druhé polovině doby svitu LEDky (FIXME), příšlušná informace je uložena do paměti. V dalších cyklech časové smyčky je pak v odpovídajícím okamžiku rozsvícena LEDG[1]. Ta vlastně reprezentuje stav paměti v daném okamžiku používané.
+* Stisknuté tlačítko KEY[3] naopak informaci z paměti maže. Tato vlastnost bude možná jednou využita k něčemu smysluplnějšímu (viz Vize).
+* Tlačítko KEY[0] slouží k demonstraci zvukových schopností programu. Po jeho stisku je zahrán tón, jehož intenzita po uvolnění tlačítka klesá.
+* Barvu tónu lze mírně upravovit užitím přepínačů SW[8] až SW[15]. Binárně reprezentovaná hodnota určuje, jakou část periody si přivlastní náběžná hrana trojúhelníku.
+* Výstupní hlasitost je možné regulovat přepínači SW[0] až SW[7]. Dolní čtyři bity tohoto rozsahu určují hlasitost levého kanálu, horní jsou obdobně spojeny s kanálem levým. 
+***
+Zvuková data jsou oscilloscope-friendly, takže výše zmiňované vlastnosti je možné snadno ověřit.
+
+
+Nitro
+=====
+Výsledný projekt sestává zejména z následujících částí:
+
+Modul 'audio_codec()':
+***
+* Inicializuje kodek za použití sběrnice I2C (zachováno pořadí kroků):
+* * Provede reset
+* * Zapne potřebné části (defaultně vypnuté kvůli úspoře energie)
+* * Vypne "DAC soft mute"
+* * Připojí výstup DAC ke zvukovému výstupu
+* * Nastaví kodek do "Master" režimu
+* * Aktivuje rozhraní
+* Přenáší (libovolná) zvuková data ke kodeku:
+* * Kodek v "Master" režimu sám zajišťuje synchronizaci přenosu. Pro svojí činnost potřebuje hodinový signál, který si umí vygenerovat pomocí vestavěného krystalového oscilátoru. Pohled do schématu zapojení kodeku napoví, proč oscilátor neosciloval.
+* * Kodek dokáže přijímat zvuková data ve čtyřech možných formátech. V projektu je implementován pouze defaultní. Formát je popsaný v (1), strany 33 - 35.
+***
+
+Modul 'gen_triangle()'
+***
+* Generuje trojúhleníkový výstup s možností zadat poměr stran.
+* Může být využit jako generátor pilového průběhu
+* Je synchronizován hodinami o požadované frekvenci.
+***
+
+Modul 'monostable()'
+***
+* Napodobuje chování monostabilního klopného obvodu.
+* Čeká zadaný počet mikrosekund od vynulování vstupu.
+* Dává poměrnou informaci o tom, kolik času ještě zbývá.
+***
+
+Modul 'audio()'	*** Toplevel
+***
+* Všechno řídí.
+***
+
+
+
+Problémy a TODO
+===============
+***
+* Na výstup občas pronikají neznáme frekvence v řádu jednotek Hz, což je zřejmě způsobeno rozdílem mezi požadovanou frekvencí (využita pro synchronizaci) a skutečnou.
+* Systemová frekvence by měla být parametr všech modulů.
+* Problémy s přesností aritmetických výpočtů jsou řešeny špinavou cestou.
+Chybí ošetření chybových stavů a krajních hodnot (dělení nulou apod.).
+* Jakékoliv posílání dat po I2C vyžaduje vytvoření automatu takového, že přechody mezi jednotlivými stavy musí být zadány explicitně.
+Řešením je využití paměti ROM, která bude obsahovat data pro odeslání po sběrnici.
+* Datový typ "reg" je používán i na místech, kde by stačil "wire".
+***
+
+Vyřešené problémy
+=================
+Několik náhodně vybranách vyřešených prolémů.
+***
+* Ladění I2C. Jako nejefektivnější se ukázalo použití sniffovacího kódu, který kopíroval data ze sběrnice na GPIO piny, odkud je mohl přímo zobrazovat osciloskop.
+* Komunikace s kodekem. Vyplatilo se přečíst celý datasheet (1), ne jenom ty části, které vypadaly zajímavě.
+***
+
+Vize
+====
+Dlouhodobějším cílem projektu je vytvořit hudební nástroj pro práci se smyčkou:
+***
+* Každému časové jednotce smyčky odpovídá záznam, který určuje, jaký nástroj má na začátku dané jednotky začít hrát, pokračovat, přestat hrát nebo se resetovat.
+* Záznam má fixní délku a obsahuje parametr (typicky frekvenci).
+* Počet záznamů, příslušných časové jednotce smyčky, odpovídá počtu aktivních nástrojů.
+***
+
+Nástroj se skládá z následujících částí:
+***
+* Vlastní generátor(y) příslušného průběhu.
+* Filtr, který generátory směšuje. Zde je možnost pro okořenění špetkou entropie.
+* Nastavitelná "obálka" průběhu.
+* Zpětná vazba s možností nastavení zesílení (a možná spoždění - náročné na paměť?)
+***
+
+Nástroje budiž propojené do mixéru přes nějaké jednoduché filtry. Příjemná by byla i podpora MIDI.
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------
+Reference
+(1) WM8731 Datasheet (Datasheets/WM8731_WM8731L.pdf) 
+
+
