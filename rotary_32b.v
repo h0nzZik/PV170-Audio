@@ -119,7 +119,6 @@ begin
 	begin
 		if (A == 1 && B == 1)
 			state <= 0;
-	
 	end
 	
 	A_last <= A;

@@ -49,14 +49,31 @@ wire		enc_b;
 assign LEDR = LEDS;
 assign rst = KEY[0];
 
-assign enc_a = GPIO_0[0];
-assign enc_b = GPIO_0[1];
+//assign enc_a = GPIO_0[0];
+//assign enc_b = GPIO_0[1];
+
+
+input_filter f1
+(
+	.in(GPIO_0[0]),
+	.out(enc_a),
+	.sys_clk(CLK),
+	.nres(1)
+);
+
+input_filter f2
+(
+	.in(GPIO_0[1]),
+	.out(enc_b),
+	.sys_clk(CLK),
+	.nres(1)
+);
 
 
 /* rotary encoder test */
-/*
-assign LEDS[11] = enc_a;
-assign LEDS[12] = enc_b;
+
+assign LEDG[7] = enc_a;
+assign LEDG[6] = enc_b;
 
 reg	[31:0]	rot_data;
 
@@ -69,12 +86,12 @@ rotary_32b	rot0
 	.bound_lower(0),
 	.sys_clk(CLK),
 	.sys_clk_freq(50_000_000),
-	.udelay(50_000)
+	.udelay(500_000)
 );
 
 
-assign LEDS[9:2] = rot_data[7:0];
-*/
+//assign LEDS[9:2] = rot_data[7:0];
+
 
 
 /* memory test */
@@ -148,7 +165,7 @@ begin
 	mem_phase <= mem_phase + 1;
 end
 
-assign LEDS[17:2] = 1 << (15 - mem_addr);
+assign LEDS[17:2] = (SW[17])?(rot_data[7:0]):(1 << (15 - mem_addr));
 
 assign LEDG[1] = q;
 
@@ -170,7 +187,7 @@ monostable m0
 );
 
 /* play-a-chord demo */
-always@(posedge KEY[1])
+always@(negedge KEY[1])
 begin
 	if (state == 0) begin
 			f <= 700;
